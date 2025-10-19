@@ -3,11 +3,13 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Brain, ArrowLeft } from "lucide-react"
+import { createSupabaseClient } from "@/lib/supabase/client"
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -19,6 +21,8 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const router = useRouter()
+  const supabase = createSupabaseClient()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -44,15 +48,29 @@ export default function SignUpPage() {
     setIsLoading(true)
 
     try {
-      // TODO: Implement actual authentication
-      console.log("Sign up attempt:", {
-        fullName: formData.fullName,
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+          },
+        },
       })
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      setSuccess(true)
-      setFormData({ fullName: "", email: "", password: "", confirmPassword: "" })
+
+      if (signUpError) {
+        setError(signUpError.message)
+        return
+      }
+
+      if (data.user) {
+        setSuccess(true)
+        // Wait a moment to show success message
+        setTimeout(() => {
+          router.push("/dashboard")
+          router.refresh()
+        }, 1500)
+      }
     } catch (err) {
       setError("Failed to create account. Please try again.")
     } finally {
