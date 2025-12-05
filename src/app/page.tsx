@@ -58,7 +58,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="bg-card border-y border-border py-20">
+      <section id="features" className="bg-card border-y border-border py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-12 text-foreground">Platform Features</h2>
           <div className="grid md:grid-cols-3 gap-8">
@@ -141,7 +141,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border bg-muted/30 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-6 h-6 bg-primary rounded-lg flex items-center justify-center">
@@ -149,20 +149,30 @@ export default function Home() {
                 </div>
                 <span className="font-bold text-foreground">CareerPath AI</span>
               </div>
-              <p className="text-sm text-muted-foreground">Your AI-powered career companion</p>
+              <p className="text-sm text-muted-foreground mb-4">Your AI-powered career companion</p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">Contact Us</p>
+                <p className="text-sm text-muted-foreground">aicareerpath@gmail.com</p>
+                <p className="text-sm text-muted-foreground">+20 1154668222</p>
+              </div>
             </div>
             <div>
               <h4 className="font-semibold text-foreground mb-4">Product</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
-                  <Link href="#" className="hover:text-primary transition-colors">
+                  <Link href="#features" className="hover:text-primary transition-colors">
                     Features
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-primary transition-colors">
+                  <button type="button" className="hover:text-primary transition-colors text-left">
+                    How it Works
+                  </button>
+                </li>
+                <li>
+                  <button type="button" className="hover:text-primary transition-colors text-left">
                     Pricing
-                  </Link>
+                  </button>
                 </li>
               </ul>
             </div>
@@ -170,29 +180,15 @@ export default function Home() {
               <h4 className="font-semibold text-foreground mb-4">Company</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
-                  <Link href="#" className="hover:text-primary transition-colors">
+                  <Link href="/about" className="hover:text-primary transition-colors">
                     About
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-primary transition-colors">
-                    Contact
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <Link href="#" className="hover:text-primary transition-colors">
-                    Privacy Policy
-                  </Link>
+                  <span className="text-muted-foreground">Careers</span>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-primary transition-colors">
-                    Terms
-                  </Link>
+                  <span className="text-muted-foreground">Cookies Policy</span>
                 </li>
               </ul>
             </div>
