@@ -24,11 +24,15 @@ export default function SignUpPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const router = useRouter()
-  const supabase = createSupabaseClient()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    
+    // Clear error when user starts typing in email field
+    if (name === "email" && error) {
+      setError("")
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,19 +43,28 @@ export default function SignUpPage() {
     // Validation
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match")
+      setIsLoading(false)
       return
     }
 
     if (formData.password.length < 8) {
       setError("Password must be at least 8 characters")
+      setIsLoading(false)
       return
     }
 
     setIsLoading(true)
 
     try {
+      // Create a fresh Supabase client instance for each signup attempt
+      // This ensures we don't have any cached state from previous attempts
+      const supabase = createSupabaseClient()
+      
+      // Clear any existing session before attempting signup
+      await supabase.auth.signOut()
+
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
         options: {
           data: {
@@ -61,7 +74,21 @@ export default function SignUpPage() {
       })
 
       if (signUpError) {
-        setError(signUpError.message)
+        // Check if the error is due to user already existing
+        const errorMessage = signUpError.message.toLowerCase()
+        if (
+          errorMessage.includes("user already registered") ||
+          errorMessage.includes("email already registered") ||
+          errorMessage.includes("already registered") ||
+          signUpError.status === 422 ||
+          errorMessage.includes("duplicate") ||
+          errorMessage.includes("already exists")
+        ) {
+          setError("An account with this email already exists. Please sign in instead.")
+        } else {
+          setError(signUpError.message)
+        }
+        setIsLoading(false)
         return
       }
 
@@ -72,9 +99,14 @@ export default function SignUpPage() {
           router.push("/dashboard")
           router.refresh()
         }, 1500)
+      } else {
+        // Handle case where user is null (shouldn't happen, but just in case)
+        setError("Failed to create account. Please try again.")
+        setIsLoading(false)
       }
     } catch (err) {
       setError("Failed to create account. Please try again.")
+      setIsLoading(false)
     } finally {
       setIsLoading(false)
     }
