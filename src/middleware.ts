@@ -45,6 +45,28 @@ export async function middleware(request: NextRequest) {
 
   return supabaseResponse
 }
+export const logout = async (request: NextRequest) => {
+    console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+        cookies: {
+            getAll() {
+            return request.cookies.getAll()
+            },
+            setAll() {
+            },
+        },
+        }
+    )
+    await supabase.auth.signOut()
+
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
+}
 
 export const config = {
   matcher: [

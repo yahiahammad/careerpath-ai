@@ -4,6 +4,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Brain, LayoutDashboard, Compass, BarChart3, BookOpen, TrendingUp, Settings, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { logout } from "@/middleware";
+
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -56,6 +58,7 @@ export function Sidebar() {
           <LogOut className="w-5 h-5" />
           <span className="text-sm font-medium">Logout</span>
         </button>
+        logout();
       </div>
     </aside>
   )

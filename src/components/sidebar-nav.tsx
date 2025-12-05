@@ -1,11 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, Brain, BookOpen, TrendingUp, Settings, LogOut, Menu, X } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { createSupabaseClient } from "@/lib/supabase/client"
 
 const navItems = [
   {
@@ -38,6 +39,15 @@ const navItems = [
 export function SidebarNav() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+  const router = useRouter()
+  const supabase = createSupabaseClient()
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    await supabase.auth.signOut()
+    router.push("/")
+    router.refresh()
+  }
 
   return (
     <>
@@ -94,10 +104,10 @@ export function SidebarNav() {
         {/* Logout Button */}
         <div className="absolute bottom-4 left-4 right-4">
           <Button variant="outline" className="w-full justify-start gap-2 bg-transparent" asChild>
-            <Link href="/">
+            <button onClick={handleLogout} className="flex items-center w-full">
               <LogOut className="w-4 h-4" />
               Logout
-            </Link>
+            </button>
           </Button>
         </div>
       </aside>
