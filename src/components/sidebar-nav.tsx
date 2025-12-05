@@ -7,30 +7,31 @@ import { LayoutDashboard, Brain, BookOpen, TrendingUp, Settings, LogOut, Menu, X
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { createSupabaseClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 const navItems = [
   {
-    label: "Dashboard",
+    labelKey: "nav.dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    label: "Assessment",
+    labelKey: "nav.assessment",
     href: "/dashboard/assessment",
     icon: Brain,
   },
   {
-    label: "Recommendations",
+    labelKey: "nav.recommendations",
     href: "/dashboard/recommendations",
     icon: BookOpen,
   },
   {
-    label: "Progress",
+    labelKey: "nav.progress",
     href: "/dashboard/progress",
     icon: TrendingUp,
   },
   {
-    label: "Settings",
+    labelKey: "nav.settings",
     href: "/dashboard/settings",
     icon: Settings,
   },
@@ -41,6 +42,7 @@ export function SidebarNav() {
   const [isOpen, setIsOpen] = useState(false)
   const router = useRouter()
   const supabase = createSupabaseClient()
+  const { t } = useLanguage()
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -80,7 +82,15 @@ export function SidebarNav() {
         <nav className="p-4 space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+            // Find the longest matching route to ensure only one tab is highlighted
+            const matchingItems = navItems.filter(
+              (navItem) =>
+                pathname === navItem.href || pathname.startsWith(navItem.href + "/")
+            )
+            const longestMatch = matchingItems.reduce((longest, current) =>
+              current.href.length > longest.href.length ? current : longest
+            )
+            const isActive = longestMatch?.href === item.href
 
             return (
               <Link
@@ -95,7 +105,7 @@ export function SidebarNav() {
                 )}
               >
                 <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium">{t(item.labelKey)}</span>
               </Link>
             )
           })}
@@ -106,7 +116,7 @@ export function SidebarNav() {
           <Button variant="outline" className="w-full justify-start gap-2 bg-transparent" asChild>
             <button onClick={handleLogout} className="flex items-center w-full">
               <LogOut className="w-4 h-4" />
-              Logout
+              {t("nav.logout")}
             </button>
           </Button>
         </div>
