@@ -337,6 +337,9 @@ export default function AssessmentPage() {
 
   const handleSubmit = () => {
     setCompleted(true)
+    // Save assessment completion status to localStorage
+    localStorage.setItem("assessmentCompleted", "true")
+    localStorage.setItem("assessmentCompletedAt", new Date().toISOString())
     // TODO: Send assessment results to backend
     console.log("Personal Info:", personalInfo)
     console.log("Answers:", answers)

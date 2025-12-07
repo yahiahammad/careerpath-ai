@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { DashboardHeader } from "@/components/dashboard-header"
@@ -7,10 +8,20 @@ import { BarChart3, BookOpen, TrendingUp, Brain, ArrowRight } from "lucide-react
 import Link from "next/link"
 
 export default function DashboardPage() {
+  const [assessmentStatus, setAssessmentStatus] = useState("Not Started")
+
+  useEffect(() => {
+    // Check if assessment has been completed
+    const isCompleted = localStorage.getItem("assessmentCompleted") === "true"
+    if (isCompleted) {
+      setAssessmentStatus("Completed")
+    }
+  }, [])
+
   const stats = [
     {
       label: "Assessment Status",
-      value: "Not Started",
+      value: assessmentStatus,
       icon: Brain,
       color: "bg-blue-50",
       textColor: "text-blue-600",
