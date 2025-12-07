@@ -33,13 +33,13 @@ export default function SecurityPage() {
     setIsLoading(true)
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setError("New passwords do not match")
+      setError(t("security.passwordMismatch"))
       setIsLoading(false)
       return
     }
 
     if (passwordData.newPassword.length < 8) {
-      setError("Password must be at least 8 characters")
+      setError(t("security.passwordTooShort"))
       setIsLoading(false)
       return
     }
@@ -55,14 +55,14 @@ export default function SecurityPage() {
         return
       }
 
-      setSuccess("Password updated successfully")
+      setSuccess(t("security.passwordUpdated"))
       setPasswordData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       })
     } catch (err: any) {
-      setError(err.message || "Failed to update password")
+      setError(err.message || t("security.passwordUpdateFailed"))
     } finally {
       setIsLoading(false)
     }
@@ -125,7 +125,7 @@ export default function SecurityPage() {
                 minLength={8}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Password must be at least 8 characters
+                {t("security.passwordTooShort")}
               </p>
             </div>
             <div>
@@ -166,7 +166,7 @@ export default function SecurityPage() {
           {twoFactorEnabled && (
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">
-                Two-factor authentication is enabled. Use an authenticator app to generate codes.
+                {t("security.twoFactorEnabled")}
               </p>
             </div>
           )}
@@ -193,11 +193,11 @@ export default function SecurityPage() {
                 <div className="flex items-center gap-3">
                   <Monitor className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium text-foreground">Current Device</p>
-                    <p className="text-xs text-muted-foreground">Windows • Chrome • Last active now</p>
+                    <p className="text-sm font-medium text-foreground">{t("security.currentDevice")}</p>
+                    <p className="text-xs text-muted-foreground">{t("security.deviceInfo")}</p>
                   </div>
                 </div>
-                <span className="text-xs text-primary font-medium">Active</span>
+                <span className="text-xs text-primary font-medium">{t("security.active")}</span>
               </div>
             </div>
           </div>

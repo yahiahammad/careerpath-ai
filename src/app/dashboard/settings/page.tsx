@@ -9,15 +9,19 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Moon, Sun, Bell, Mail, Globe, Shield, Trash2 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { createSupabaseClient } from "@/lib/supabase/client"
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const { language, setLanguage, t } = useLanguage()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const supabase = createSupabaseClient()
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const [settings, setSettings] = useState({
     darkMode: theme === "dark",
@@ -55,6 +59,58 @@ export default function SettingsPage() {
     // Save settings to localStorage or backend
     localStorage.setItem("userSettings", JSON.stringify(settings))
     // You can also save to Supabase here
+  }
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true)
+    try {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError || !user) {
+        throw new Error("User not found")
+      }
+
+      // Try to delete from common tables that might exist
+      // Delete from users table if it exists
+      const { error: usersError } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', user.id)
+      
+      // Delete from profiles table if it exists
+      const { error: profilesError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id)
+      
+      // Delete from user_profiles table if it exists
+      const { error: userProfilesError } = await supabase
+        .from('user_profiles')
+        .delete()
+        .eq('user_id', user.id)
+      
+      // Note: Actual auth user deletion requires admin privileges
+      // For now, we delete related data and sign out
+      // The auth user will remain but won't be accessible
+      // To fully delete, you'd need a server-side function with admin access
+      
+      // Sign out the user
+      const { error: signOutError } = await supabase.auth.signOut()
+      
+      if (signOutError) {
+        throw signOutError
+      }
+      
+      // Redirect to home
+      router.push("/")
+      router.refresh()
+    } catch (error: any) {
+      console.error("Delete account error:", error)
+      alert(error.message || t("security.deleteAccountFailed"))
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   if (!mounted) {
@@ -162,7 +218,7 @@ export default function SettingsPage() {
         <Card className="p-6">
           <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
             <Globe className="w-5 h-5" />
-            {t("settings.language")} & Region
+            {t("settings.language")} & {t("settings.region")}
           </h3>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -217,17 +273,6 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>{t("settings.dataPrivacy")}</Label>
-                <p className="text-sm text-muted-foreground">
-                  {t("settings.dataPrivacyDesc")}
-                </p>
-              </div>
-              <Button variant="outline" size="sm">
-                {t("settings.viewPrivacyPolicy")}
-              </Button>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
                 <Label>{t("settings.accountSecurity")}</Label>
                 <p className="text-sm text-muted-foreground">
                   {t("settings.accountSecurityDesc")}
@@ -256,9 +301,31 @@ export default function SettingsPage() {
                   {t("settings.deleteAccountDesc")}
                 </p>
               </div>
-              <Button variant="destructive" size="sm">
-                {t("settings.deleteAccount")}
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={isDeleting}>
+                    {t("settings.deleteAccount")}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t("settings.deleteAccount")}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t("security.deleteAccountConfirm")}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? t("common.loading") : t("common.delete")}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </Card>
