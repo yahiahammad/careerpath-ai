@@ -8,11 +8,11 @@ import { BarChart3, BookOpen, TrendingUp, Brain, ArrowRight } from "lucide-react
 import Link from "next/link"
 import { createSupabaseClient } from "@/lib/supabase/client"
 import { Skeleton } from "@/components/ui/skeleton"
+import { SkillsManager } from "@/components/skills-manager"
 
 export default function DashboardPage() {
   const [assessmentStatus, setAssessmentStatus] = useState("Not Started")
   const [skillCount, setSkillCount] = useState(0)
-  const [recentSkills, setRecentSkills] = useState<any[]>([])
   const [careerPath, setCareerPath] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createSupabaseClient()
@@ -44,13 +44,6 @@ export default function DashboardPage() {
           .limit(5)
 
         if (count !== null) setSkillCount(count)
-        if (skillsData) {
-          setRecentSkills(skillsData.map((d: any) => ({
-            name: d.skill?.name || "Unknown Skill",
-            level: d.proficiency_level,
-            date: d.last_updated
-          })))
-        }
       } catch (e) {
         console.error("Error fetching skills:", e)
       }
@@ -181,34 +174,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Activity */}
-      <Card className="mt-8 p-6">
-        <h3 className="text-lg font-bold text-foreground mb-4">Identified Skills</h3>
-        {isLoading ? (
-          <div className="flex flex-wrap gap-2">
-            <Skeleton className="h-8 w-24" />
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-8 w-20" />
-          </div>
-        ) : recentSkills.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {recentSkills.map((s, i) => (
-              <div key={i} className="flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg border">
-                <span className="font-medium text-primary">{s.name}</span>
-                <span className="text-xs text-muted-foreground px-2 py-0.5 bg-background rounded-full border">{s.level}</span>
-              </div>
-            ))}
-            {skillCount > 5 && (
-              <div className="px-3 py-2 text-sm text-muted-foreground">
-                + {skillCount - 5} more
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No skills identified yet. Start your career journey by taking the assessment!</p>
-          </div>
-        )}
-      </Card>
+      <div className="mt-8">
+        <SkillsManager />
+      </div>
     </div>
   )
 }
