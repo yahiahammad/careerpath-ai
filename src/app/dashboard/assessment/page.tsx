@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Brain, CheckCircle, ArrowRight, ArrowLeft, Search, X, Loader2, AlertCircle } from "lucide-react"
+import { Brain, CheckCircle, ArrowRight, ArrowLeft, Search, X, Loader2, AlertCircle, UploadCloud, FileText } from "lucide-react"
 import Link from "next/link"
 import { createSupabaseClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -143,6 +143,7 @@ export default function AssessmentPage() {
   const [started, setStarted] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [completed, setCompleted] = useState(false)
 
   // Data Stores
@@ -252,6 +253,85 @@ export default function AssessmentPage() {
     setIsSearching(false)
   }
 
+  // --- Resume Upload Logic ---
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const response = await fetch("/api/parse-resume", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || "Failed to parse resume")
+      }
+
+      const data = await response.json()
+      console.log("Parsed Resume Data:", data)
+
+      // Map parsed data to state
+      if (data.personalInfo) {
+        setPersonalInfo(prev => ({
+          ...prev,
+          currentJobTitle: data.personalInfo.currentJobTitle || prev.currentJobTitle,
+          yearsExperience: data.personalInfo.yearsExperience || prev.yearsExperience,
+          educationLevel: data.personalInfo.educationLevel || prev.educationLevel,
+        }))
+
+        setAnswers(prev => ({
+          ...prev,
+          q_current_job: data.personalInfo.currentJobTitle,
+          q_experience: data.personalInfo.yearsExperience,
+          q_education: data.personalInfo.educationLevel,
+          q_target_path: data.suggestedPath
+        }))
+      }
+
+      if (data.technicalSkills) {
+        const newSkills: Record<string, SkillEntry[]> = { ...selectedSkills }
+
+        // Helper to map and merge skills
+        const mergeSkills = (categoryKey: string, source: any[]) => {
+          if (!source || !Array.isArray(source)) return;
+          const mapped = source.map((s: any) => ({
+            name: s.name,
+            level: s.level || "Intermediate"
+          }));
+          newSkills[categoryKey] = [...(newSkills[categoryKey] || []), ...mapped];
+        }
+
+        // Check if it's the new categorized format
+        if (!Array.isArray(data.technicalSkills)) {
+          mergeSkills('q_languages', data.technicalSkills.languages);
+          mergeSkills('q_frameworks', data.technicalSkills.frameworks);
+          mergeSkills('q_tools', data.technicalSkills.tools);
+        } else {
+          // Fallback for old format (dump to tools)
+          mergeSkills('q_tools', data.technicalSkills);
+        }
+
+        setSelectedSkills(newSkills)
+      }
+
+      toast.success("Resume processed! We've pre-filled your assessment.")
+      setStarted(true) // Auto-start
+
+    } catch (error: any) {
+      console.error("Upload error:", error)
+      toast.error(error.message)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   // --- Atomic Submit Logic ---
 
   const handleSubmit = async () => {
@@ -330,29 +410,85 @@ export default function AssessmentPage() {
       const uniqueSkillNames = Array.from(new Set(allSkills.map(s => s.name)))
       console.log("Unique Skill Names to Save:", uniqueSkillNames)
 
+      // 0. RESET SKILLS FOR RETAKE: Delete all existing skills for this user
+      const { error: deleteError } = await supabase
+        .from('user_skills')
+        .delete()
+        .eq('user_id', user.id)
+
+      if (deleteError) {
+        console.error("Error clearing old skills:", deleteError)
+        // We continue anyway, hoping upsert handles collisions, though "zombie" skills might remain if not deleted.
+      }
+
       if (uniqueSkillNames.length > 0) {
-        // 1. Fetch IDs for these names
-        const { data: existingSkills, error: fetchSkillsError } = await supabase
+        // 1. Fetch ALL skills to perform case-insensitive matching
+        // (Assuming "skills" table is not massive; if >2000 rows, consider a search function)
+        const { data: allDbSkills, error: fetchSkillsError } = await supabase
           .from('skills')
           .select('id, name')
-          .in('name', uniqueSkillNames)
-
-        console.log("Existing Skills Found in DB:", existingSkills)
 
         if (fetchSkillsError) {
-          console.error("Error computing skill IDs:", fetchSkillsError)
-        } else if (existingSkills && existingSkills.length > 0) {
-          // 2. Map names to IDs with LeveL
-          const startStats = existingSkills.map(s => {
-            const userSelection = allSkills.find(userS => userS.name === s.name)
-            console.log(`Mapping skill ${s.name}: user selected`, userSelection)
+          console.error("Error fetching skill IDs:", fetchSkillsError)
+        } else if (allDbSkills && allDbSkills.length > 0) {
+
+          // Create a lookup map (lowercase -> skill record)
+          const skillMap = new Map<string, { id: any, name: string }>()
+          allDbSkills.forEach(s => {
+            if (s.name) skillMap.set(s.name.toLowerCase(), s)
+          })
+
+          // 2. Identify and Create Missing Skills
+          const missingSkills = uniqueSkillNames.filter(name => !skillMap.has(name.toLowerCase()))
+
+          if (missingSkills.length > 0) {
+            console.log("Found missing skills, creating:", missingSkills)
+
+            // Validate: Trim and limit length
+            const skillsToInsert = missingSkills
+              .map(name => ({ name: name.trim() }))
+              .filter(s => s.name.length > 0 && s.name.length <= 50)
+
+            if (skillsToInsert.length > 0) {
+              const { data: newSkills, error: createError } = await supabase
+                .from('skills')
+                .insert(skillsToInsert)
+                .select('id, name')
+
+              if (createError) {
+                console.error("Error creating new skills:", createError)
+                toast.error("Some new skills could not be saved to the database.")
+              } else if (newSkills) {
+                // Add new skills to our map so they can be linked
+                newSkills.forEach(s => {
+                  if (s.name) skillMap.set(s.name.toLowerCase(), s)
+                })
+                console.log("Successfully created and mapped new skills:", newSkills.length)
+              }
+            }
+          }
+
+          // 3. Map names to IDs with Level (Case Insensitive)
+          const startStats = uniqueSkillNames.map(userSkillName => {
+            const lowerName = userSkillName.toLowerCase()
+            const dbSkill = skillMap.get(lowerName)
+
+            if (!dbSkill) {
+              console.warn(`Skipping skill "${userSkillName}" - Failed to find or create in DB`)
+              return null
+            }
+
+            // Find the original user selection object to get the level
+            // (We also match this case-insensitively to be safe)
+            const userSelection = allSkills.find(s => s.name.toLowerCase() === lowerName)
+
             return {
               user_id: user.id,
-              skill_id: s.id,
+              skill_id: dbSkill.id,
               proficiency_level: userSelection?.level || "Intermediate",
               last_updated: new Date().toISOString()
             }
-          })
+          }).filter(item => item !== null) // Remove nulls
 
           console.log("PAYLOAD for user_skills:", startStats) // Debug Log
 
@@ -623,9 +759,32 @@ export default function AssessmentPage() {
                 <span className="text-sm text-muted-foreground">Powered Reports</span>
               </div>
             </div>
-            <Button size="lg" onClick={() => setStarted(true)} className="w-full md:w-auto px-8 text-lg h-12">
-              Start Assessment <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Button size="lg" onClick={() => setStarted(true)} className="w-full sm:w-auto px-8 text-lg h-12">
+                Start Assessment <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".pdf,.docx"
+                  onChange={handleFileUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                  disabled={isUploading}
+                />
+                <Button variant="outline" size="lg" className="w-full sm:w-auto px-6 text-lg h-12 gap-2" disabled={isUploading}>
+                  {isUploading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <UploadCloud className="w-5 h-5" />
+                  )}
+                  {isUploading ? "Analyzing..." : "Upload Resume"}
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              Supported formats: PDF, DOCX (Max 5MB)
+            </p>
           </Card>
         </div>
       </div>
