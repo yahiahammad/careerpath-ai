@@ -70,22 +70,10 @@ const ASSESSMENT_QUESTIONS: Question[] = [
 
   // Section 2: Technical Skill Inventory
   {
-    id: "q_languages",
-    question: "Which programming languages are you proficient in?",
+    id: "q_technical_skills",
+    question: "What technical skills are you proficient in?",
     type: "skill-search",
-    placeholder: "e.g., Python, JavaScript, Java..."
-  },
-  {
-    id: "q_frameworks",
-    question: "Which frameworks & libraries can you build with?",
-    type: "skill-search",
-    placeholder: "e.g., React, Django, Spring Boot..."
-  },
-  {
-    id: "q_tools",
-    question: "Which tools & platforms do you use regularly?",
-    type: "skill-search",
-    placeholder: "e.g., Git, Docker, AWS, Figma..."
+    placeholder: "e.g., Python, React, AWS, Docker..."
   },
   {
     id: "q_confidence",
@@ -161,9 +149,7 @@ export default function AssessmentPage() {
 
   // Specific store for multi-select skills to keep them organized
   const [selectedSkills, setSelectedSkills] = useState<Record<string, SkillEntry[]>>({
-    q_languages: [],
-    q_frameworks: [],
-    q_tools: []
+    q_technical_skills: []
   })
 
   // Search State
@@ -308,17 +294,32 @@ export default function AssessmentPage() {
           newSkills[categoryKey] = [...(newSkills[categoryKey] || []), ...mapped];
         }
 
-        // Check if it's the new categorized format
-        if (!Array.isArray(data.technicalSkills)) {
-          mergeSkills('q_languages', data.technicalSkills.languages);
-          mergeSkills('q_frameworks', data.technicalSkills.frameworks);
-          mergeSkills('q_tools', data.technicalSkills.tools);
+        if (Array.isArray(data.technicalSkills)) {
+          // Direct mapping for flat list
+          const mapped = data.technicalSkills.map((s: any) => ({
+            name: s.name,
+            level: s.level || "Intermediate"
+          }));
+          const newSkills: Record<string, SkillEntry[]> = { ...selectedSkills };
+          newSkills['q_technical_skills'] = mapped;
+          setSelectedSkills(newSkills);
         } else {
-          // Fallback for old format (dump to tools)
-          mergeSkills('q_tools', data.technicalSkills);
+          // Fallback: This path is unlikely given the prompt instructions,
+          // but keeps type safety if object structure accidentally returns
+          console.warn("Received structured data instead of array for skills");
+          const flattened = [
+            ...(data.technicalSkills?.languages || []),
+            ...(data.technicalSkills?.frameworks || []),
+            ...(data.technicalSkills?.tools || [])
+          ];
+          const mapped = flattened.map((s: any) => ({
+            name: s.name,
+            level: s.level || "Intermediate"
+          }));
+          const newSkills: Record<string, SkillEntry[]> = { ...selectedSkills };
+          newSkills['q_technical_skills'] = mapped;
+          setSelectedSkills(newSkills);
         }
-
-        setSelectedSkills(newSkills)
       }
 
       toast.success("Resume processed! We've pre-filled your assessment.")
@@ -357,9 +358,7 @@ export default function AssessmentPage() {
       }
 
       const allSkills = [
-        ...(selectedSkills['q_languages'] || []),
-        ...(selectedSkills['q_frameworks'] || []),
-        ...(selectedSkills['q_tools'] || [])
+        ...(selectedSkills['q_technical_skills'] || [])
       ]
 
       // 3. DB Operations
@@ -382,7 +381,7 @@ export default function AssessmentPage() {
           })
           .select('career_path_id')
           .single()
-
+ 
         if (pathError) {
           console.error("Error creating career path:", JSON.stringify(pathError, null, 2))
           toast.error("Could not save career path details. (Check RLS policies)")

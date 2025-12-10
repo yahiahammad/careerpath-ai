@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
       1. currentJobTitle: The candidate's most recent or current job title.
       2. yearsExperience: Map to one of ["0-1 years", "1-3 years", "3-5 years", "5-10 years", "10+ years"].
       3. educationLevel: Map to one of ["High School", "Bootcamp / Certificate", "Associate Degree", "Bachelor's Degree", "Master's Degree", "PhD", "Self-Taught"].
-      4. technicalSkills: Object containing three arrays: "languages", "frameworks", "tools". Each skill has a "name" and "level" (Beginner/Intermediate/Advanced/Expert).
+      4. technicalSkills: A single list of all technical skills found (languages, frameworks, tools). Each skill has a "name" and "level" (Beginner/Intermediate/Advanced/Expert).
       5. softSkills: A list of soft skills found.
       6. suggestedPath: A suggested target career path based on their background (e.g., "Full Stack Developer", "Data Scientist").
 
@@ -125,11 +125,9 @@ export async function POST(req: NextRequest) {
           "yearsExperience": "string",
           "educationLevel": "string"
         },
-        "technicalSkills": {
-          "languages": [{ "name": "string", "level": "string" }],
-          "frameworks": [{ "name": "string", "level": "string" }],
-          "tools": [{ "name": "string", "level": "string" }]
-        },
+        "technicalSkills": [
+          { "name": "string", "level": "string" }
+        ],
         "softSkills": ["string"],
         "suggestedPath": "string"
       }
