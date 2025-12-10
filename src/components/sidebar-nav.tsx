@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Brain, BookOpen, TrendingUp, Settings, LogOut, Menu, X } from "lucide-react"
+import { LayoutDashboard, Brain, BookOpen, TrendingUp, Settings, LogOut, Menu, X, User } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { createSupabaseClient } from "@/lib/supabase/client"
@@ -29,6 +29,11 @@ const navItems = [
     labelKey: "nav.progress",
     href: "/dashboard/progress",
     icon: TrendingUp,
+  },
+  {
+    labelKey: "nav.profile",
+    href: "/dashboard/profile",
+    icon: User,
   },
   {
     labelKey: "nav.settings",
