@@ -82,9 +82,17 @@ export async function POST(req: NextRequest) {
         let text = "";
 
         if (file.type === "application/pdf") {
-            const pdf = require("pdf-parse");
-            const data = await pdf(buffer);
-            text = data.text;
+            const PDFParser = require("pdf2json");
+            const pdfParser = new PDFParser(null, 1); // 1 = text only
+
+            text = await new Promise((resolve, reject) => {
+                pdfParser.on("pdfParser_dataError", (errData: any) => reject(new Error(errData.parserError)));
+                pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
+                    // pdf2json returns URL encoded text sometimes, but rawTextContent is usually best
+                    resolve(pdfParser.getRawTextContent());
+                });
+                pdfParser.parseBuffer(buffer);
+            });
         } else if (
             file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
             file.name.endsWith(".docx")
