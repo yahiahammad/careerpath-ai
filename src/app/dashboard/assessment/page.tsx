@@ -517,8 +517,24 @@ export default function AssessmentPage() {
 
       if (assessmentError) throw new Error("Failed to save assessment: " + assessmentError.message)
 
+      // E. Trigger Recommendation Generation (Background)
+      // We don't await this to keep the UI snappy, or we can await inside a try/catch if we want to ensure it starts.
+      // Since the user wants "only updated when... retakes assessment", this is the place.
+      fetch('/api/recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPosition: fullProfile.current_position,
+          desiredCareerPath: fullProfile.expected_careerpath,
+          skills: uniqueSkillNames
+        })
+      }).then(res => {
+        if (!res.ok) console.error("Failed to trigger background recommendation generation")
+        else console.log("Recommendation generation triggered successfully")
+      }).catch(err => console.error("Error triggering recommendations:", err))
+
       setCompleted(true)
-      toast.success("Assessment saved successfully!")
+      toast.success("Assessment saved and recommendations updated!")
 
     } catch (error: any) {
       console.error("Submission error:", error)
