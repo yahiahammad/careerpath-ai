@@ -85,13 +85,6 @@ export default function DashboardPage() {
       color: "bg-orange-50",
       textColor: "text-orange-600",
     },
-    {
-      label: "Progress",
-      value: isLoading ? "..." : "0%",
-      icon: TrendingUp,
-      color: "bg-orange-50",
-      textColor: "text-orange-600",
-    },
   ]
 
   return (

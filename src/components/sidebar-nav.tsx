@@ -30,11 +30,7 @@ const navItems = [
     href: "/dashboard/chat",
     icon: MessageSquare,
   },
-  {
-    labelKey: "nav.progress",
-    href: "/dashboard/progress",
-    icon: TrendingUp,
-  },
+
   {
     labelKey: "nav.profile",
     href: "/dashboard/profile",
