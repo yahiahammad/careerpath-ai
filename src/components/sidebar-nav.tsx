@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Brain, BookOpen, TrendingUp, Settings, LogOut, Menu, X, User } from "lucide-react"
+import { LayoutDashboard, Brain, BookOpen, TrendingUp, Settings, LogOut, Menu, X, User, MessageSquare } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { createSupabaseClient } from "@/lib/supabase/client"
@@ -24,6 +24,11 @@ const navItems = [
     labelKey: "nav.recommendations",
     href: "/dashboard/recommendations",
     icon: BookOpen,
+  },
+  {
+    labelKey: "nav.chat",
+    href: "/dashboard/chat",
+    icon: MessageSquare,
   },
   {
     labelKey: "nav.progress",
