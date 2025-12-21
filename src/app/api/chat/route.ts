@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import Groq from 'groq-sdk';
 import { pipeline } from '@xenova/transformers';
 
+export const dynamic = 'force-dynamic'; // Prevent static analysis build crashes
+
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
 });
