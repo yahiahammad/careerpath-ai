@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import Groq from 'groq-sdk';
-import { pipeline } from '@xenova/transformers';
 
 export const dynamic = 'force-dynamic'; // Prevent static analysis build crashes
 
@@ -13,6 +12,7 @@ let extractor: any = null;
 
 async function getExtractor() {
     if (!extractor) {
+        const { pipeline } = await import('@xenova/transformers');
         extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     }
     return extractor;
