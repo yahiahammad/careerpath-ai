@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = 'force-dynamic';
 import Groq from "groq-sdk";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-// import imports moved inside handler
 
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
@@ -24,7 +23,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No file provided" }, { status: 400 });
         }
 
-        // 1. Clean up old resumes to enforce single-file policy
+        // deletes any other resume that is already in the database
         const { data: existingFiles } = await supabase.storage
             .from('resumes')
             .list(user.id);
@@ -37,13 +36,11 @@ export async function POST(req: NextRequest) {
 
             if (removeError) {
                 console.error("Error removing old resume:", removeError);
-                // We continue even if delete fails, to strictly allow the new upload
             }
         }
 
-        // 2. Upload to Supabase Storage
+        // uploads the new resume to database
         const timestamp = Date.now();
-        // Sanitize filename to avoid issues with special characters
         const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
         const filePath = `${user.id}/${timestamp}_${safeName}`;
 
@@ -59,12 +56,12 @@ export async function POST(req: NextRequest) {
             throw new Error(`Failed to upload resume file: ${uploadError.message}`);
         }
 
-        // 2. Get Public URL
+        // gets the public url of the uploaded resume
         const { data: { publicUrl } } = supabase.storage
             .from('resumes')
             .getPublicUrl(filePath);
 
-        // 3. Update Career Profile
+        // updates the career profile with the new resume
         const { error: dbError } = await supabase
             .from('career_profiles')
             .upsert({
@@ -75,13 +72,12 @@ export async function POST(req: NextRequest) {
 
         if (dbError) {
             console.error("DB update error:", dbError);
-            // We don't stop the whole process if this fails, but it's good to know
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());
         let text = "";
 
-        if (file.type === "application/pdf") {
+        if (file.type === "application/pdf") { // we use pdf2json if the file is pdf
             const PDFParser = require("pdf2json");
             const pdfParser = new PDFParser(null, 1); // 1 = text only
 
@@ -93,7 +89,7 @@ export async function POST(req: NextRequest) {
                 });
                 pdfParser.parseBuffer(buffer);
             });
-        } else if (
+        } else if ( //if word we use mammoth
             file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
             file.name.endsWith(".docx")
         ) {

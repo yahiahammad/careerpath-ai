@@ -12,7 +12,6 @@ import { createSupabaseClient } from "@/lib/supabase/client"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 
-// Placeholder for Career Paths (User requested only Courses for now)
 const CAREER_PATHS = [
   {
     title: "Software Engineer to Tech Lead",

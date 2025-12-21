@@ -3,13 +3,10 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import Groq from 'groq-sdk';
 import { pipeline } from '@xenova/transformers';
 
-// Initialize Groq client
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
 });
 
-// Singleton for the embedding pipeline to avoid reloading on every request (in valid environments)
-// Note: In serverless, this might still reload, but it helps in some runtimes.
 let extractor: any = null;
 
 async function getExtractor() {
@@ -32,7 +29,6 @@ export async function POST(req: NextRequest) {
 
         const currentSkills = skills && skills.length > 0 ? skills.join(', ') : 'None listed';
 
-        // 1. Refine the query using Groq
         const completion = await groq.chat.completions.create({
             messages: [
                 {
@@ -44,18 +40,15 @@ export async function POST(req: NextRequest) {
                     content: `Current Position: ${currentPosition}\nCurrent Skills: ${currentSkills}\nDesired Career Path: ${desiredCareerPath}`
                 }
             ],
-            model: 'llama-3.3-70b-versatile', // Updated to supported model
+            model: 'llama-3.3-70b-versatile',
         });
 
         const searchQuery = completion.choices[0]?.message?.content?.trim() || `${desiredCareerPath} skills`;
         console.log('Generated Search Query:', searchQuery);
 
-        // 2. Generate Embedding for the query
         const pipe = await getExtractor();
         const output = await pipe(searchQuery, { pooling: 'mean', normalize: true });
         const embedding = Array.from(output.data);
-
-        // 3. Query Supabase
         const supabase = await createSupabaseServerClient();
 
         // Get current user
@@ -63,11 +56,10 @@ export async function POST(req: NextRequest) {
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-
-        // Call the RPC function we defined in SQL
+        // matches courses to reccomend
         const { data: courses, error } = await supabase.rpc('match_courses', {
             query_embedding: embedding,
-            match_threshold: 0.3, // Adjust based on testing
+            match_threshold: 0.3,
             match_count: 30
         });
 
@@ -76,7 +68,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Failed to fetch recommendations' }, { status: 500 });
         }
 
-        // 4. Save to user_courses table
+        // Save to user courses table
         if (courses && courses.length > 0) {
             const userCourses = courses.map((course: any) => ({
                 user_id: user.id,
@@ -92,7 +84,6 @@ export async function POST(req: NextRequest) {
 
             if (upsertError) {
                 console.error('Error saving user courses:', upsertError);
-                // We don't fail the request if saving fails, but we log it
             }
         }
 

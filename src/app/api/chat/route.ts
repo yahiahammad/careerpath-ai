@@ -7,7 +7,7 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
 });
 
-// Embedding pipeline singleton
+// Singleton for embedding model
 let extractor: any = null;
 async function getExtractor() {
     if (!extractor) {
@@ -33,14 +33,13 @@ interface Course {
     skills?: string[];
 }
 
-// Keywords that suggest user wants course recommendations
 const COURSE_KEYWORDS = [
     'course', 'courses', 'learn', 'learning', 'study', 'training',
     'tutorial', 'class', 'certification', 'certificate', 'recommend',
     'skill', 'skills', 'what should i learn', 'how to learn', 'resources',
     'where can i', 'udemy', 'coursera', 'linkedin learning'
 ];
-
+// deteccts when it should respond with courses
 function shouldFetchCourses(messages: Message[]): boolean {
     const lastUserMessage = messages.filter(m => m.role === 'user').pop();
     if (!lastUserMessage) return false;
@@ -54,13 +53,10 @@ export async function POST(req: NextRequest) {
         const { messages } = await req.json() as { messages: Message[] };
 
         if (!messages || !Array.isArray(messages) || messages.length === 0) {
-            return NextResponse.json(
-                { error: 'Messages array is required' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Messages array is required' }, { status: 400 });
         }
 
-        // Get authenticated user
+
         const supabase = await createSupabaseServerClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -68,110 +64,156 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Fetch user's skills with proficiency
-        const { data: userSkills } = await supabase
+        const context = await getUserContext(supabase, user.id);
+
+
+        const courses = await findRelevantCourses(supabase, messages, context);
+
+        const systemPrompt = buildSystemPrompt(context, courses);
+
+        const completion = await groq.chat.completions.create({
+            messages: [
+                { role: 'system', content: systemPrompt },
+                ...messages
+            ],
+            model: 'llama-3.3-70b-versatile',
+            temperature: 0.7,
+            max_tokens: 2048,
+        });
+
+        const assistantMessage = completion.choices[0]?.message?.content ||
+            "I'm sorry, I couldn't generate a response. Please try again.";
+
+        return NextResponse.json({
+            message: assistantMessage,
+            role: 'assistant',
+            courses: courses.length > 0 ? courses : undefined
+        });
+
+    } catch (error) {
+        console.error('Chat API Error:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+// --- Helper Functions ---
+
+interface UserContext {
+    skillsList: string;
+    currentPosition: string;
+    targetCareer: string;
+    education: string;
+}
+
+async function getUserContext(supabase: any, userId: string): Promise<UserContext> {
+    const [skillsResult, profileResult] = await Promise.all([
+        supabase
             .from('user_skills')
             .select('proficiency_level, skill:skills(name)')
-            .eq('user_id', user.id);
-
-        const skillsList = userSkills?.map((us: any) =>
-            `${us.skill?.name} (${us.proficiency_level})`
-        ).join(', ') || 'No skills recorded';
-
-        // Fetch career profile
-        const { data: careerProfile } = await supabase
+            .eq('user_id', userId),
+        supabase
             .from('career_profiles')
             .select('current_position, expected_careerpath, education_level')
-            .eq('user_id', user.id)
-            .single();
+            .eq('user_id', userId)
+            .single()
+    ]);
 
-        const currentPosition = careerProfile?.current_position || 'Unknown';
-        const targetCareer = careerProfile?.expected_careerpath || 'Not specified';
-        const education = careerProfile?.education_level || 'Not specified';
+    const skillsList = skillsResult.data?.map((us: any) =>
+        `${us.skill?.name} (${us.proficiency_level})`
+    ).join(', ') || 'No skills recorded';
 
-        // Fetch courses if the query is course-related
-        let courses: Course[] = [];
-        if (shouldFetchCourses(messages)) {
-            try {
-                const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+    const profile = profileResult.data;
 
-                // 1. Ask LLM to generate a better search query
-                const queryGenCompletion = await groq.chat.completions.create({
-                    messages: [
-                        {
-                            role: 'system',
-                            content: `You are an expert at refining search queries for career courses. 
+    return {
+        skillsList,
+        currentPosition: profile?.current_position || 'Unknown',
+        targetCareer: profile?.expected_careerpath || 'Not specified',
+        education: profile?.education_level || 'Not specified'
+    };
+}
+
+async function findRelevantCourses(supabase: any, messages: Message[], context: UserContext): Promise<Course[]> {
+    if (!shouldFetchCourses(messages)) return [];
+
+    try {
+        const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+        if (!lastUserMessage) return [];
+
+        // A. Refine Search Query
+        const queryGenCompletion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: 'system',
+                    content: `You are an expert at refining search queries for career courses. 
 Based on the user's profile and request, generate a SINGLE, keywords-focused search query to find the most relevant courses.
 Do not include words like "course" or "learn". Focus on specific skills, technologies, or roles.
-User Target Path: ${targetCareer}
-User Skills: ${skillsList}`
-                        },
-                        {
-                            role: 'user',
-                            content: lastUserMessage?.content || ''
-                        }
-                    ],
-                    model: 'llama-3.3-70b-versatile',
-                    max_tokens: 50,
-                    temperature: 0.3,
-                });
+User Target Path: ${context.targetCareer}
+User Skills: ${context.skillsList}`
+                },
+                { role: 'user', content: lastUserMessage.content }
+            ],
+            model: 'llama-3.3-70b-versatile',
+            max_tokens: 50,
+            temperature: 0.3,
+        });
 
-                const refinedQuery = queryGenCompletion.choices[0]?.message?.content?.trim() || `${targetCareer} skills`;
-                console.log('Generated Search Query:', refinedQuery);
+        const refinedQuery = queryGenCompletion.choices[0]?.message?.content?.trim() || `${context.targetCareer} skills`;
+        console.log('Generated Search Query:', refinedQuery);
 
-                // 2. Generate embedding for the refined query
-                const pipe = await getExtractor();
-                const output = await pipe(refinedQuery, { pooling: 'mean', normalize: true });
-                const embedding = Array.from(output.data);
+        // B. Generate Embedding
+        const pipe = await getExtractor();
+        const output = await pipe(refinedQuery, { pooling: 'mean', normalize: true });
+        const embedding = Array.from(output.data);
 
-                // Query matching courses
-                const { data: matchedCourses } = await supabase.rpc('match_courses', {
-                    query_embedding: embedding,
-                    match_threshold: 0.3,
-                    match_count: 5
-                });
+        // C. Match Courses
+        const { data: matchedCourses } = await supabase.rpc('match_courses', {
+            query_embedding: embedding,
+            match_threshold: 0.3,
+            match_count: 5
+        });
 
-                if (matchedCourses && matchedCourses.length > 0) {
-                    // Fetch additional course details including skills
-                    const courseIds = matchedCourses.map((c: any) => c.id);
-                    const { data: coursesWithSkills } = await supabase
-                        .from('courses')
-                        .select(`
-                            id, title, provider, url, duration_hours, rating, user_count, difficulty_level,
-                            course_skills (skill:skills(name))
-                        `)
-                        .in('id', courseIds);
+        if (!matchedCourses || matchedCourses.length === 0) return [];
 
-                    courses = coursesWithSkills?.map((c: any) => ({
-                        id: c.id,
-                        title: c.title,
-                        provider: c.provider,
-                        url: c.url,
-                        duration_hours: c.duration_hours,
-                        rating: c.rating,
-                        user_count: c.user_count,
-                        difficulty_level: c.difficulty_level,
-                        skills: c.course_skills?.map((cs: any) => cs.skill?.name).filter(Boolean) || []
-                    })) || [];
-                }
-            } catch (courseError) {
-                console.error('Error fetching courses:', courseError);
-                // Continue without courses
-            }
-        }
+        // D. Hydrate Course Details
+        const courseIds = matchedCourses.map((c: any) => c.id);
+        const { data: coursesWithSkills } = await supabase
+            .from('courses')
+            .select(`
+                id, title, provider, url, duration_hours, rating, user_count, difficulty_level,
+                course_skills (skill:skills(name))
+            `)
+            .in('id', courseIds);
 
-        // Build system prompt with user context
-        const courseContext = courses.length > 0
-            ? `\n\n**NOTE:** I have found ${courses.length} relevant courses that will be displayed as cards below your response. Reference them naturally in your advice (e.g., "I've found some great courses for you" or "check out the recommended courses below").`
-            : '';
+        return coursesWithSkills?.map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            provider: c.provider,
+            url: c.url,
+            duration_hours: c.duration_hours,
+            rating: c.rating,
+            user_count: c.user_count,
+            difficulty_level: c.difficulty_level,
+            skills: c.course_skills?.map((cs: any) => cs.skill?.name).filter(Boolean) || []
+        })) || [];
 
-        const systemPrompt = `You are an expert AI career counselor with deep knowledge of career development, learning paths, and industry trends. You help users navigate their career journey.
+    } catch (courseError) {
+        console.error('Error fetching courses:', courseError);
+        return [];
+    }
+}
+
+function buildSystemPrompt(context: UserContext, courses: Course[]): string {
+    const courseContext = courses.length > 0
+        ? `\n\n**NOTE:** I have found ${courses.length} relevant courses that will be displayed as cards below your response. Reference them naturally in your advice (e.g., "I've found some great courses for you" or "check out the recommended courses below").`
+        : '';
+
+    return `You are an expert AI career counselor with deep knowledge of career development, learning paths, and industry trends. You help users navigate their career journey.
 
 **USER PROFILE:**
-- Current Position: ${currentPosition}
-- Target Career Path: ${targetCareer}
-- Education Level: ${education}
-- Current Skills: ${skillsList}
+- Current Position: ${context.currentPosition}
+- Target Career Path: ${context.targetCareer}
+- Education Level: ${context.education}
+- Current Skills: ${context.skillsList}
 
 **YOUR CAPABILITIES:**
 1. Analyze skill gaps between current and desired positions
@@ -189,6 +231,12 @@ User Skills: ${skillsList}`
 - Focus on English-language courses and resources
 ${courseContext}
 
+**SCOPE & LIMITATIONS (CRITICAL):**
+- You are strictly a Career Counselor AI.
+- **DO NOT** answer questions unrelated to careers, jobs, education, skills, resume building, or professional development.
+- If a user asks about general topics (e.g., "Write a poem about cats", "What is the capital of France?", "Coding help not related to career"), politely decline and steer them back to their career path.
+- Example refusal: "I specialize in career counseling and professional development. I can help you plan your next career move or find relevant courses, but I can't assist with that."
+
 **MERMAID DIAGRAM INSTRUCTIONS:**
 When asked to visualize a career path, learning journey, or trajectory, include a Mermaid diagram using this format:
 
@@ -205,35 +253,4 @@ graph TD
 4. Keep diagrams simple and readable.
 
 Make diagrams clear, logical, and actionable. Use descriptive labels.`;
-
-        // Prepare messages for the API call
-        const apiMessages: Message[] = [
-            { role: 'system', content: systemPrompt },
-            ...messages
-        ];
-
-        // Call Groq API
-        const completion = await groq.chat.completions.create({
-            messages: apiMessages,
-            model: 'llama-3.3-70b-versatile',
-            temperature: 0.7,
-            max_tokens: 2048,
-        });
-
-        const assistantMessage = completion.choices[0]?.message?.content ||
-            "I'm sorry, I couldn't generate a response. Please try again.";
-
-        return NextResponse.json({
-            message: assistantMessage,
-            role: 'assistant',
-            courses: courses.length > 0 ? courses : undefined
-        });
-
-    } catch (error) {
-        console.error('Chat API Error:', error);
-        return NextResponse.json(
-            { error: 'Internal Server Error' },
-            { status: 500 }
-        );
-    }
 }
