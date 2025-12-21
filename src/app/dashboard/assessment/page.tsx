@@ -818,9 +818,9 @@ export default function AssessmentPage() {
             We've generated your profile and are calculating your skill gaps now.
           </p>
           <div className="space-y-4">
-            <Link href="/dashboard/career-path">
+            <Link href="/dashboard/chat">
               <Button className="w-full h-12 text-lg">
-                View My Career Path <ArrowRight className="ml-2" />
+                Talk to AI Coach <ArrowRight className="ml-2" />
               </Button>
             </Link>
             <Link href="/dashboard">

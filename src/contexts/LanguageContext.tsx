@@ -18,11 +18,12 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.dashboard": "Dashboard",
     "nav.assessment": "Assessment",
     "nav.recommendations": "Recommendations",
+    "nav.chat": "AI Coach",
     "nav.progress": "Progress",
     "nav.settings": "Settings",
     "nav.profile": "Profile",
     "nav.logout": "Logout",
-    
+
     // Settings
     "settings.title": "Settings",
     "settings.description": "Manage your account and preferences",
@@ -51,7 +52,7 @@ const translations: Record<Language, Record<string, string>> = {
     "settings.deleteAccount": "Delete Account",
     "settings.deleteAccountDesc": "Permanently delete your account and all associated data",
     "settings.saveChanges": "Save Changes",
-    
+
     // Security Settings
     "security.title": "Security Settings",
     "security.description": "Manage your account security and privacy",
@@ -80,7 +81,7 @@ const translations: Record<Language, Record<string, string>> = {
     "security.deleteAccountSuccess": "Account deleted successfully",
     "security.deleteAccountFailed": "Failed to delete account",
     "settings.region": "Region",
-    
+
     // Common
     "common.welcome": "Welcome back",
     "common.loading": "Loading...",
@@ -94,11 +95,12 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.dashboard": "Panel",
     "nav.assessment": "Evaluación",
     "nav.recommendations": "Recomendaciones",
+    "nav.chat": "Asesor IA",
     "nav.progress": "Progreso",
     "nav.settings": "Configuración",
     "nav.profile": "Perfil",
     "nav.logout": "Cerrar sesión",
-    
+
     // Settings
     "settings.title": "Configuración",
     "settings.description": "Administra tu cuenta y preferencias",
@@ -127,7 +129,7 @@ const translations: Record<Language, Record<string, string>> = {
     "settings.deleteAccount": "Eliminar cuenta",
     "settings.deleteAccountDesc": "Eliminar permanentemente tu cuenta y todos los datos asociados",
     "settings.saveChanges": "Guardar cambios",
-    
+
     // Security Settings
     "security.title": "Configuración de seguridad",
     "security.description": "Administra la seguridad y privacidad de tu cuenta",
@@ -156,7 +158,7 @@ const translations: Record<Language, Record<string, string>> = {
     "security.deleteAccountSuccess": "Cuenta eliminada exitosamente",
     "security.deleteAccountFailed": "Error al eliminar la cuenta",
     "settings.region": "Región",
-    
+
     // Common
     "common.welcome": "Bienvenido de nuevo",
     "common.loading": "Cargando...",
@@ -170,11 +172,12 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.dashboard": "Tableau de bord",
     "nav.assessment": "Évaluation",
     "nav.recommendations": "Recommandations",
+    "nav.chat": "Coach IA",
     "nav.progress": "Progrès",
     "nav.settings": "Paramètres",
     "nav.profile": "Profil",
     "nav.logout": "Déconnexion",
-    
+
     // Settings
     "settings.title": "Paramètres",
     "settings.description": "Gérez votre compte et vos préférences",
@@ -203,7 +206,7 @@ const translations: Record<Language, Record<string, string>> = {
     "settings.deleteAccount": "Supprimer le compte",
     "settings.deleteAccountDesc": "Supprimer définitivement votre compte et toutes les données associées",
     "settings.saveChanges": "Enregistrer les modifications",
-    
+
     // Security Settings
     "security.title": "Paramètres de sécurité",
     "security.description": "Gérez la sécurité et la confidentialité de votre compte",
@@ -232,7 +235,7 @@ const translations: Record<Language, Record<string, string>> = {
     "security.deleteAccountSuccess": "Compte supprimé avec succès",
     "security.deleteAccountFailed": "Échec de la suppression du compte",
     "settings.region": "Région",
-    
+
     // Common
     "common.welcome": "Bon retour",
     "common.loading": "Chargement...",
@@ -246,11 +249,12 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.dashboard": "Dashboard",
     "nav.assessment": "Bewertung",
     "nav.recommendations": "Empfehlungen",
+    "nav.chat": "KI-Coach",
     "nav.progress": "Fortschritt",
     "nav.settings": "Einstellungen",
     "nav.profile": "Profil",
     "nav.logout": "Abmelden",
-    
+
     // Settings
     "settings.title": "Einstellungen",
     "settings.description": "Verwalten Sie Ihr Konto und Ihre Einstellungen",
@@ -279,7 +283,7 @@ const translations: Record<Language, Record<string, string>> = {
     "settings.deleteAccount": "Konto löschen",
     "settings.deleteAccountDesc": "Löschen Sie Ihr Konto und alle zugehörigen Daten dauerhaft",
     "settings.saveChanges": "Änderungen speichern",
-    
+
     // Security Settings
     "security.title": "Sicherheitseinstellungen",
     "security.description": "Verwalten Sie Ihre Kontosicherheit und Privatsphäre",
@@ -308,7 +312,7 @@ const translations: Record<Language, Record<string, string>> = {
     "security.deleteAccountSuccess": "Konto erfolgreich gelöscht",
     "security.deleteAccountFailed": "Fehler beim Löschen des Kontos",
     "settings.region": "Region",
-    
+
     // Common
     "common.welcome": "Willkommen zurück",
     "common.loading": "Laden...",
@@ -322,11 +326,12 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.dashboard": "لوحة التحكم",
     "nav.assessment": "التقييم",
     "nav.recommendations": "التوصيات",
+    "nav.chat": "المرشد الذكي",
     "nav.progress": "التقدم",
     "nav.settings": "الإعدادات",
     "nav.profile": "الملف الشخصي",
     "nav.logout": "تسجيل الخروج",
-    
+
     // Settings
     "settings.title": "الإعدادات",
     "settings.description": "إدارة حسابك وتفضيلاتك",
@@ -355,7 +360,7 @@ const translations: Record<Language, Record<string, string>> = {
     "settings.deleteAccount": "حذف الحساب",
     "settings.deleteAccountDesc": "حذف حسابك وجميع البيانات المرتبطة به بشكل دائم",
     "settings.saveChanges": "حفظ التغييرات",
-    
+
     // Security Settings
     "security.title": "إعدادات الأمان",
     "security.description": "إدارة أمان وخصوصية حسابك",
@@ -384,7 +389,7 @@ const translations: Record<Language, Record<string, string>> = {
     "security.deleteAccountSuccess": "تم حذف الحساب بنجاح",
     "security.deleteAccountFailed": "فشل حذف الحساب",
     "settings.region": "المنطقة",
-    
+
     // Common
     "common.welcome": "مرحبًا بعودتك",
     "common.loading": "جاري التحميل...",
