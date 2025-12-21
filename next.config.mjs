@@ -10,6 +10,7 @@ const nextConfig = {
     config.externals.push({
       '@xenova/transformers': 'commonjs @xenova/transformers',
       'sharp': 'commonjs sharp',
+      'onnxruntime-node': 'commonjs onnxruntime-node',
     });
     return config;
   },
