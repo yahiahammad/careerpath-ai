@@ -17,7 +17,7 @@ export default function SecurityPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -70,8 +70,6 @@ export default function SecurityPage() {
 
   const handle2FAToggle = (checked: boolean) => {
     setTwoFactorEnabled(checked)
-    // Here you would implement actual 2FA setup
-    // For now, just update the state
   }
 
   return (
